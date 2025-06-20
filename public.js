@@ -21,21 +21,28 @@ function translateWeatherCode(code) {
 function getWeatherImage(code) {
     if (code === 0) return "images/sunny.png";
     if ([1, 2, 3].includes(code)) return "images/cloudy.png";
-    // if ([45, 48].includes(code)) return "images/foggy.png";
     if ([61, 63, 65].includes(code)) return "images/rainy.png";
     if ([71, 73, 75].includes(code)) return "images/snowy.png";
     if ([95, 96, 99].includes(code)) return "images/thunderstorm.png";
     return "images/unknown.png";
 }
 
-function fetchWeather(lat, lon) {
+async function fetchWeather(lat, lon) {
     const Url = "https://api.open-meteo.com/v1/forecast";
     const params = [
         "latitude=" + lat,
         "longitude=" + lon,
-        "current=temperature_2m,wind_speed_10m,weather_code,apparent_temperature,wind_direction_10m,precipitation,cloud_cover", 
+        "current=temperature_2m,wind_speed_10m,weather_code,apparent_temperature,wind_direction_10m,precipitation,cloud_cover",
         "timezone=auto"
     ].join("&");
 
-    return fetch(`${Url}?${params}`).then(res => res.json());
+    try {
+        const res = await fetch(`${Url}?${params}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        return data;
+    } catch (error) {
+        console.error("fetchWeather error:", error);
+        throw error;
+    }
 }

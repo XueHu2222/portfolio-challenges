@@ -12,92 +12,84 @@ function createWeatherCard(cityName, lat, lon, weatherCode, temperature, windSpe
 
     card.addEventListener('click', () => {
         window.location.href = `details.html?city=${cityName}&lat=${lat}&lon=${lon}`;
-        // window.open(`details.html?city=${encodeURIComponent(cityName)}`);
     });
-    
+
     return card;
 }
 
-function loadCities() {
-    const list = document.getElementById('city-list')
-
-    // create array and fetch each city data
-    Promise.all(
-        cities.map(city =>
-            fetchWeather(city.lat, city.lon)
-                .then(data => ({
+async function loadCities() {
+    const list = document.getElementById('city-list');
+    try {
+        const results = await Promise.all(
+            cities.map(async city => {
+                const data = await fetchWeather(city.lat, city.lon);
+                return {
                     name: city.name,
                     lat: city.lat,
                     lon: city.lon,
                     weatherCode: data.current.weather_code,
                     temperature: data.current.temperature_2m,
                     wind: data.current.wind_speed_10m
-                }))
-        )
-    )
-        .then(results => {
-            results.forEach(city => {
-                const card = createWeatherCard(
-                    city.name,
-                    city.lat,
-                    city.lon,
-                    city.weatherCode,
-                    city.temperature,
-                    city.wind,
-                    ''
-                );
-                list.appendChild(card);
-            });
-        })
-        .catch(error => {
-            list.innerHTML = "<p class='text-red-500'>Load Error, Please refresh</p>";
-            console.error(error);
-        });
-}
-
-function loadUserLocationWeather() {
-    const list = document.getElementById('city-list');
-
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            position => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-
-                
-
-                // get city name
-                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
-                    .then(res => res.json())
-                    .then(locationData => {
-                        const cityName = locationData.address.city || "Unknown Location";
-
-                        // get city data
-                        fetchWeather(lat, lon)
-                            .then(data => {
-                                const card = createWeatherCard(
-                                    cityName,
-                                    lat,
-                                    lon,
-                                    data.current.weather_code,
-                                    data.current.temperature_2m,
-                                    data.current.wind_speed_10m,
-                                    '(Your Location)'
-                                );
-                                list.prepend(card);
-                            });
-                    });
-            },
-            error => {
-                console.error("Error getting location:", error);
-            }
+                };
+            })
         );
-    } else {
-        console.error("Geolocation is not supported by this browser.");
+
+        results.forEach(city => {
+            const card = createWeatherCard(
+                city.name,
+                city.lat,
+                city.lon,
+                city.weatherCode,
+                city.temperature,
+                city.wind,
+                ''
+            );
+            list.appendChild(card);
+        });
+    } catch (error) {
+        list.innerHTML = "<p class='text-red-500'>Load Error, Please refresh</p>";
+        console.error(error);
     }
 }
 
-window.onload = function() {
+async function loadUserLocationWeather() {
+    const list = document.getElementById('city-list');
+
+    if (!navigator.geolocation) {
+        console.error("Geolocation is not supported by this browser.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async position => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const locationData = await res.json();
+            const cityName = locationData.address.city || "Unknown Location";
+
+            const data = await fetchWeather(lat, lon);
+            const card = createWeatherCard(
+                cityName,
+                lat,
+                lon,
+                data.current.weather_code,
+                data.current.temperature_2m,
+                data.current.wind_speed_10m,
+                '(Your Location)'
+            );
+            list.prepend(card);
+        } catch (error) {
+            console.error("Error fetching location weather:", error);
+        }
+    }, error => {
+        console.error("Error getting location:", error);
+    });
+}
+
+window.onload = function () {
     loadUserLocationWeather();
     loadCities();
 };
