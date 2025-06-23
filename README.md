@@ -8,7 +8,8 @@
 https://github.com/XueHu2222/portfolio-challenges
 
 ## Description
-This is a simple pizza ordering website created as part of the university framework challenge.  
+This is a weather website that provides weather information for many countries. If you want to check the weather for your current location, the website will ask for your location permission when you enter. You need to allow location access to view the weather in your area.
+
 It includes:
 
 - HTML  
